@@ -11,6 +11,8 @@
 #include <utility>
 #include <vector>
 
+#include <libtokamap/libtokamap.hpp>
+
 // UDA includes
 #include <client/getEnvironment.h>
 #include <clientserver/compressDim.h>
@@ -36,6 +38,34 @@
 //  - handle error arrays (how to determine not empty?)
 //  - only read required data out of cache for each request (i.e. data, error, or a single dim)
 
+namespace
+{
+
+std::unique_ptr<libtokamap::DataSource> uda_data_source_factory(const libtokamap::DataSourceFactoryArgs& args)
+{
+// explicit UDADataSource(std::string plugin_name,
+//                        std::optional<std::string> function,
+//                        const PluginList* plugin_list,
+//                        bool cache_enabled)
+    auto plugin_name = libtokamap::get_arg<std::string>(args, "plugin_name");
+    std::optional<std::string> function = {};
+    if (args.contains("function")) {
+        function = libtokamap::get_arg<std::string>(args, "function");
+    }
+    std::optional<std::string> plugin_config_path = {};
+    if (args.contains("plugin_config_path")) {
+        plugin_config_path = libtokamap::get_arg<std::string>(args, "plugin_config_path");
+    }
+    return std::make_unique<uda_data_source::UDADataSource>(plugin_name, function, plugin_config_path);
+}
+
+} // anon namespace
+
+void LibTokaMapFactoryLoader(libtokamap::FactoryEntryInterface& factory)
+{
+    factory.function = uda_data_source_factory;
+}
+
 /**
  * @brief
  *
@@ -46,7 +76,7 @@
  * @param json_globals
  * @return
  */
-std::string json_plugin::UDADataSource::get_request_str(const libtokamap::DataSourceArgs& data_source_args,
+std::string uda_data_source::UDADataSource::get_request_str(const libtokamap::DataSourceArgs& data_source_args,
                                                         const libtokamap::MapArguments& arguments) const
 {
     std::stringstream string_stream;
@@ -93,7 +123,7 @@ std::string json_plugin::UDADataSource::get_request_str(const libtokamap::DataSo
     return request;
 }
 
-int json_plugin::UDADataSource::call_plugins(DATA_BLOCK* data_block, const libtokamap::DataSourceArgs& data_source_args,
+int uda_data_source::UDADataSource::call_plugins(DATA_BLOCK* data_block, const libtokamap::DataSourceArgs& data_source_args,
                                              const libtokamap::MapArguments& arguments,
                                              libtokamap::RamCache* ram_cache) const
 {
@@ -107,7 +137,7 @@ int json_plugin::UDADataSource::call_plugins(DATA_BLOCK* data_block, const libto
     strcpy(request.signal, request_str.c_str());
 
     ENVIRONMENT* environment = getIdamClientEnvironment();
-    makeRequestData(&request, *m_plugin_list, environment);
+    makeRequestData(&request, m_plugin_list, environment);
 
     IDAM_PLUGIN_INTERFACE interface = {0};
     CLIENT_BLOCK client_block;
@@ -118,14 +148,14 @@ int json_plugin::UDADataSource::call_plugins(DATA_BLOCK* data_block, const libto
     initSignalDesc(&signal_desc);
 
     interface.request_data = &request;
-    interface.pluginList = m_plugin_list;
+    interface.pluginList = &m_plugin_list;
     interface.data_block = data_block;
     interface.environment = environment;
     interface.client_block = &client_block;
     interface.data_source = &data_source;
     interface.signal_desc = &signal_desc;
 
-    err = callPlugin(m_plugin_list, request_str.c_str(), &interface);
+    err = callPlugin(&m_plugin_list, request_str.c_str(), &interface);
 
     if (err != 0) {
         // add check of int udaNumErrors() and if more than one, don't wipe
@@ -295,7 +325,7 @@ class ArrayBuilder
 };
 } // namespace
 
-libtokamap::TypedDataArray json_plugin::UDADataSource::get(const libtokamap::DataSourceArgs& data_source_args,
+libtokamap::TypedDataArray uda_data_source::UDADataSource::get(const libtokamap::DataSourceArgs& data_source_args,
                                                            const libtokamap::MapArguments& arguments,
                                                            libtokamap::RamCache* ram_cache)
 {
