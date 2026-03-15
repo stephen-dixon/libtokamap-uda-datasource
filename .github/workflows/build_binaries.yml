@@ -20,7 +20,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [ubuntu-latest]
+        os: [macos-latest]
         release: [Release]
         # os: [ubuntu-latest, macos-latest]
         # release: [Debug, Release]
@@ -45,13 +45,17 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
-      - name: Install dependencies
+      - name: Install dependencies (Linux)
         if: matrix.os == 'ubuntu-latest'
         run: eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv bash)" &&
           export PKG_CONFIG_PATH=$(pkg-config --prefix)/lib/pkgconfig &&
           brew install pkg-config ninja libtirpc &&
           export CPATH=$(brew --prefix libtirpc)/include/tirpc &&
           brew install jholloc/formulae/libtokamap jholloc/formulae/uda
+
+      - name: Install dependencies (macOS)
+        if: matrix.os == 'macos-latest'
+        run: brew install pkg-config ninja jholloc/formulae/libtokamap jholloc/formulae/uda
 
       - name: Configure CMake
         run: >
