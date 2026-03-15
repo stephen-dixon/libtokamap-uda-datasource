@@ -43,14 +43,12 @@ jobs:
 
       - name: Install homebrew on Linux
         if: matrix.os == 'ubuntu-latest'
-        run:
-          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" &&
-          echo >> /home/runner/.bashrc &&
-          echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv bash)"' >> /home/runner/.bashrc &&
-          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv bash)"
+        run: /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
       - name: Install dependencies
-        run: brew install
+        if: matrix.os == 'ubuntu-latest'
+        run: eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv bash)" &&
+          brew install
           pkg-config
           ninja
           jholloc/formulae/libtokamap
