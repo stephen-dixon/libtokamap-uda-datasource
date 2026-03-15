@@ -20,8 +20,10 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
-        release: [Debug, Release]
+        os: [ubuntu-latest]
+        release: [Release]
+        # os: [ubuntu-latest, macos-latest]
+        # release: [Debug, Release]
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -37,7 +39,7 @@ jobs:
 
       - name: Install homebrew on Linux
         if: matrix.os == 'ubuntu-latest'
-        run: sudo /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+        run: /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
       - name: Install dependencies
         run: brew install
