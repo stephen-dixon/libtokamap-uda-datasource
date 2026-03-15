@@ -21,11 +21,28 @@ set( SOURCES
     src/uda_data_source.cpp
 )
 
-add_library( json_data_source SHARED ${SOURCES} )
-target_include_directories( json_data_source PRIVATE ${UDA_INCLUDE_DIRS} )
-target_link_directories( json_data_source PRIVATE ${UDA_LIBRARY_DIRS} )
-target_link_libraries( json_data_source PRIVATE
+if( "${CMAKE_BUILD_TYPE}" STREQUAL "Debug" )
+    set( LIBRARY_SUFFIX "_debug" )
+else()
+    set( LIBRARY_SUFFIX "" )
+endif()
+
+set( LIBRARY_NAME "json_data_source${LIBRARY_SUFFIX}" )
+
+add_library( ${LIBRARY_NAME} SHARED ${SOURCES} )
+target_include_directories( ${LIBRARY_NAME} PRIVATE ${UDA_INCLUDE_DIRS} )
+target_link_directories( ${LIBRARY_NAME} PRIVATE ${UDA_LIBRARY_DIRS} )
+target_link_libraries( ${LIBRARY_NAME} PRIVATE
     LibTokaMap::libtokamap
     ${UDA_CLIENT_LIBRARIES}
     ${UDA_PLUGINS_LIBRARIES}
+)
+
+include( GNUInstallDirs )
+
+install( TARGETS ${LIBRARY_NAME}
+    EXPORT ${LIBRARY_NAME}Targets
+    RUNTIME DESTINATION bin
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib
 )
