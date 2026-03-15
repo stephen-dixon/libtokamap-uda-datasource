@@ -39,7 +39,7 @@ jobs:
 
       - name: Setup Linux
         if: matrix.os == 'ubuntu-latest'
-        run: sudo apt update && sudo apt install -y build-essential libtirpc-dev
+        run: sudo apt update && sudo apt install -y build-essential
 
       - name: Install homebrew on Linux
         if: matrix.os == 'ubuntu-latest'
@@ -48,9 +48,11 @@ jobs:
       - name: Install dependencies
         if: matrix.os == 'ubuntu-latest'
         run: eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv bash)" &&
+          export PKG_CONFIG_PATH=$(pkg-config --prefix)/lib/pkgconfig &&
           brew install
           pkg-config
           ninja
+          libtirpc
           jholloc/formulae/libtokamap
           jholloc/formulae/uda
 
