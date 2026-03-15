@@ -45,7 +45,7 @@ jobs:
 
       - name: Configure CMake
         run: >
-          export PKG_CONFIG_PATH=$(pkg-config --prefix)/lib/pkgconfig
+          export PKG_CONFIG_PATH=$(pkg-config --prefix)/lib/pkgconfig &&
           cmake -S . -G Ninja -B build -DCMAKE_BUILD_TYPE=${{ matrix.release }}
 
       - name: Build
