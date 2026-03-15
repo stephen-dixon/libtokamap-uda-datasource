@@ -49,12 +49,9 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv bash)" &&
           export PKG_CONFIG_PATH=$(pkg-config --prefix)/lib/pkgconfig &&
-          brew install
-          pkg-config
-          ninja
-          libtirpc
-          jholloc/formulae/libtokamap
-          jholloc/formulae/uda
+          brew install pkg-config ninja libtirpc &&
+          export CPATH=$(brew --prefix libtirpc)/include/tirpc &&
+          brew install jholloc/formulae/libtokamap jholloc/formulae/uda
 
       - name: Configure CMake
         run: >
