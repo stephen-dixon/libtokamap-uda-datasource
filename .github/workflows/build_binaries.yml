@@ -37,7 +37,7 @@ jobs:
 
       - name: Install homebrew on Linux
         if: matrix.os == 'ubuntu-latest'
-        run: sudo apt update && sudo apt install -y homebrew
+        run: sudo /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
       - name: Install dependencies
         run: brew install
