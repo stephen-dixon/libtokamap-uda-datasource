@@ -53,7 +53,7 @@ jobs:
           brew install jholloc/formulae/libtokamap jholloc/formulae/uda
 
       - name: Install dependencies (macOS)
-        if: matrix.os == 'macos-latest'
+        if: startsWith(matrix.os, 'macos'
         run: brew install pkg-config ninja jholloc/formulae/libtokamap jholloc/formulae/uda
 
       - name: Configure CMake
