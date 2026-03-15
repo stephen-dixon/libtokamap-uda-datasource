@@ -22,12 +22,12 @@ set( SOURCES
 )
 
 if( "${CMAKE_BUILD_TYPE}" STREQUAL "Debug" )
-    set( LIBRARY_SUFFIX "_debug" )
+    set( LIBRARY_NAME_SUFFIX "_debug" )
 else()
-    set( LIBRARY_SUFFIX "" )
+    set( LIBRARY_NAME_SUFFIX "" )
 endif()
 
-set( LIBRARY_NAME "json_data_source${LIBRARY_SUFFIX}" )
+set( LIBRARY_NAME "uda_data_source${LIBRARY_NAME_SUFFIX}" )
 
 add_library( ${LIBRARY_NAME} SHARED ${SOURCES} )
 target_include_directories( ${LIBRARY_NAME} PRIVATE ${UDA_INCLUDE_DIRS} )
@@ -35,7 +35,6 @@ target_link_directories( ${LIBRARY_NAME} PRIVATE ${UDA_LIBRARY_DIRS} )
 target_link_libraries( ${LIBRARY_NAME} PRIVATE
     LibTokaMap::libtokamap
     ${UDA_CLIENT_LIBRARIES}
-    ${UDA_PLUGINS_LIBRARIES}
 )
 
 include( GNUInstallDirs )

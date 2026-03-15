@@ -14,24 +14,10 @@
 #include <libtokamap.hpp>
 
 // UDA includes
-#include <client/getEnvironment.h>
+#include <client/accAPI.h>
+#include <client/udaGetAPI.h>
 #include <clientserver/compressDim.h>
-#include <clientserver/errorLog.h>
-#include <clientserver/initStructs.h>
-#include <clientserver/makeRequestBlock.h>
-#include <clientserver/parseXML.h>
-#include <clientserver/stringUtils.h>
-#include <clientserver/udaStructs.h>
 #include <clientserver/udaTypes.h>
-#include <plugins/pluginStructs.h>
-#include <plugins/udaPlugin.h>
-#include <structures/struct.h>
-
-#include "map_types/data_source_mapping.hpp"
-#include "map_types/map_arguments.hpp"
-// #include "uda_ram_cache.hpp"
-// #include "utils/ram_cache.hpp"
-#include "utils/typed_data_array.hpp"
 
 // TODO:
 //  - handle compressed dims
@@ -43,28 +29,19 @@ namespace
 
 std::unique_ptr<libtokamap::DataSource> uda_data_source_factory(const libtokamap::DataSourceFactoryArgs& args)
 {
-// explicit UDADataSource(std::string plugin_name,
-//                        std::optional<std::string> function,
-//                        const PluginList* plugin_list,
-//                        bool cache_enabled)
+    auto host = libtokamap::get_arg<std::string>(args, "host");
+    auto port = libtokamap::get_arg<int>(args, "port");
     auto plugin_name = libtokamap::get_arg<std::string>(args, "plugin_name");
     std::optional<std::string> function = {};
     if (args.contains("function")) {
         function = libtokamap::get_arg<std::string>(args, "function");
     }
-    std::optional<std::string> plugin_config_path = {};
-    if (args.contains("plugin_config_path")) {
-        plugin_config_path = libtokamap::get_arg<std::string>(args, "plugin_config_path");
-    }
-    return std::make_unique<uda_data_source::UDADataSource>(plugin_name, function, plugin_config_path);
+    return std::make_unique<uda_data_source::UDADataSource>(host, port, plugin_name, function);
 }
 
-} // anon namespace
+} // namespace
 
-void LibTokaMapFactoryLoader(libtokamap::FactoryEntryInterface& factory)
-{
-    factory.function = uda_data_source_factory;
-}
+void LibTokaMapFactoryLoader(libtokamap::FactoryEntryInterface& factory) { factory.function = uda_data_source_factory; }
 
 /**
  * @brief
@@ -77,7 +54,7 @@ void LibTokaMapFactoryLoader(libtokamap::FactoryEntryInterface& factory)
  * @return
  */
 std::string uda_data_source::UDADataSource::get_request_str(const libtokamap::DataSourceArgs& data_source_args,
-                                                        const libtokamap::MapArguments& arguments) const
+                                                            const libtokamap::MapArguments& arguments) const
 {
     std::stringstream string_stream;
     // string_stream << m_plugin_name << "::" << m_function.value_or("get") << "(";
@@ -90,7 +67,7 @@ std::string uda_data_source::UDADataSource::get_request_str(const libtokamap::Da
     }
     string_stream << "(";
 
-    if ( data_source_args.at("signal") == "void" || data_source_args.at("signal").empty() ) { // temporary ugliness
+    if (data_source_args.at("signal") == "void" || data_source_args.at("signal").empty()) { // temporary ugliness
         return {};
     }
 
@@ -123,50 +100,24 @@ std::string uda_data_source::UDADataSource::get_request_str(const libtokamap::Da
     return request;
 }
 
-int uda_data_source::UDADataSource::call_plugins(DATA_BLOCK* data_block, const libtokamap::DataSourceArgs& data_source_args,
-                                             const libtokamap::MapArguments& arguments,
-                                             libtokamap::RamCache* ram_cache) const
+DATA_BLOCK* uda_data_source::UDADataSource::call_uda(const libtokamap::DataSourceArgs& data_source_args,
+                                                     const libtokamap::MapArguments& arguments,
+                                                     libtokamap::RamCache* ram_cache) const
 {
-    int err{1};
     auto request_str = get_request_str(data_source_args, arguments);
     if (request_str.empty()) {
-        return err;
+        return nullptr;
     } // Return 1 if no request receieved
 
     REQUEST_DATA request = {0};
     strcpy(request.signal, request_str.c_str());
 
-    ENVIRONMENT* environment = getIdamClientEnvironment();
-    makeRequestData(&request, m_plugin_list, environment);
+    int handle = idamGetAPIWithHost(request_str.c_str(), "", m_host.c_str(), m_port);
+    if (handle < 0) {
+        return nullptr;
+    }
 
-    IDAM_PLUGIN_INTERFACE interface = {0};
-    CLIENT_BLOCK client_block;
-    DATA_SOURCE data_source;
-    SIGNAL_DESC signal_desc;
-    initClientBlock(&client_block, 0, "");
-    initDataSource(&data_source);
-    initSignalDesc(&signal_desc);
-
-    interface.request_data = &request;
-    interface.pluginList = &m_plugin_list;
-    interface.data_block = data_block;
-    interface.environment = environment;
-    interface.client_block = &client_block;
-    interface.data_source = &data_source;
-    interface.signal_desc = &signal_desc;
-
-    err = callPlugin(&m_plugin_list, request_str.c_str(), &interface);
-
-    if (err != 0) {
-        // add check of int udaNumErrors() and if more than one, don't wipe
-        // 220 situation when UDA tries to get data and cannot find it
-        if (err == 220) {
-            closeUdaError();
-        }
-        return err;
-    } // return code if failure, no need to proceed
-
-    return err;
+    return getIdamDataBlock(handle);
 }
 
 namespace
@@ -274,14 +225,13 @@ class ArrayBuilder
     }
 
   private:
-    template<typename T>
-    libtokamap::TypedDataArray _array_factory()
+    template <typename T> libtokamap::TypedDataArray _array_factory()
     {
         if constexpr (std::is_same_v<T, char>) {
             return libtokamap::TypedDataArray(const_cast<char*>(m_data), m_size, std::move(m_shape), m_owning);
         } else {
-            return libtokamap::TypedDataArray(reinterpret_cast<T*>(const_cast<char*>(m_data)),
-                                                m_size, std::move(m_shape), m_owning);
+            return libtokamap::TypedDataArray(reinterpret_cast<T*>(const_cast<char*>(m_data)), m_size,
+                                              std::move(m_shape), m_owning);
         }
     }
 
@@ -326,18 +276,17 @@ class ArrayBuilder
 } // namespace
 
 libtokamap::TypedDataArray uda_data_source::UDADataSource::get(const libtokamap::DataSourceArgs& data_source_args,
-                                                           const libtokamap::MapArguments& arguments,
-                                                           libtokamap::RamCache* ram_cache)
+                                                               const libtokamap::MapArguments& arguments,
+                                                               libtokamap::RamCache* ram_cache)
 {
-    DATA_BLOCK data_block;
-    int err = call_plugins(&data_block, data_source_args, arguments, ram_cache);
+    DATA_BLOCK* data_block = call_uda(data_source_args, arguments, ram_cache);
 
-    if (err != 0) {
+    if (data_block == nullptr) {
         return {};
     }
 
     if (data_source_args.count("time") != 0 && data_source_args.at("time").get<bool>()) {
-        return ArrayBuilder().ownership(ArrayBuilder::OwnershipPolicy::COPY).time(data_block).build();
+        return ArrayBuilder().ownership(ArrayBuilder::OwnershipPolicy::COPY).time(*data_block).build();
     }
-    return ArrayBuilder().ownership(ArrayBuilder::OwnershipPolicy::COPY).data(data_block).build();
+    return ArrayBuilder().ownership(ArrayBuilder::OwnershipPolicy::COPY).data(*data_block).build();
 }
