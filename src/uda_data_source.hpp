@@ -8,7 +8,7 @@
 #include <string>
 #include <utility>
 
-#include <libtokamap/libtokamap.hpp>
+#include <libtokamap.hpp>
 
 #include <clientserver/udaStructs.h>
 #include <server/initPluginList.h>
