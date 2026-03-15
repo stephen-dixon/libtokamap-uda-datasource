@@ -37,6 +37,10 @@ jobs:
             core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
             core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
 
+      - name: Setup Linux
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt update && sudo apt install -y build-essential
+
       - name: Install homebrew on Linux
         if: matrix.os == 'ubuntu-latest'
         run:
