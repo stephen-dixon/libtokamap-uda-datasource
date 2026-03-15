@@ -1,0 +1,13 @@
+{
+    "ip/data": {
+        "map_type": "DATA_SOURCE",
+        "data_source": "UDA",
+        "args": {
+            "signal": "/AMC/PLASMA_CURRENT",
+            "source": "45272",
+            "host": "uda2.mast.l",
+            "port": "56565"
+        },
+        "scale": 1000
+    }
+}

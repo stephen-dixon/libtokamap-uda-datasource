@@ -1,0 +1,9 @@
+{
+  "metadata": {
+    "experiment": "mastu",
+    "author": "John Doe",
+    "version": "1.0.1"
+  },
+  "partitions": [],
+  "groups": ["magnetics"]
+}

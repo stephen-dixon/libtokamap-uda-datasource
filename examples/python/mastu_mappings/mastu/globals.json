@@ -1,0 +1,11 @@
+{
+  "data_source_config": {
+    "UDA": {
+      "args": {
+          "source": "45272",
+          "host": "uda2.hpc.l",
+          "port": "56565"
+      }
+    }
+  }
+}

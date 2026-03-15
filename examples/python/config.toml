@@ -1,0 +1,21 @@
+mapping_directory = "/Users/sdixon/uda/iter-mapping-workshop/libtokamap/python/mastu_mappings"
+schemas_directory = "/Users/sdixon/uda/iter-mapping-workshop/libtokamap/schemas"
+trace_enabled = true
+cache_enabled = false
+custom_function_libraries = [
+]
+
+[data_source_factories]
+uda_factory = "/Users/sdixon/uda/iter-mapping-workshop/libtokamap/python/libuda_data_source.dylib" 
+
+[data_sources.UDA]
+factory = "uda_factory"
+args.host = "uda2.hpc.l"
+args.port = 59876
+args.plugin_name = "UDA"
+
+[data_sources.GEOMETRY]
+factory = "uda_factory"
+args.host = "uda2.hpc.l"
+args.port = 59876
+args.plugin_name = "GEOMETRY"
