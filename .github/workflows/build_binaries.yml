@@ -51,6 +51,7 @@ jobs:
           brew install
           pkg-config
           ninja
+          libtirpc
           jholloc/formulae/libtokamap
           jholloc/formulae/uda
 
