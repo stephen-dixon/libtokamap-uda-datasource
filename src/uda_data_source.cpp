@@ -11,7 +11,7 @@
 #include <utility>
 #include <vector>
 
-#include <libtokamap/libtokamap.hpp>
+#include <libtokamap.hpp>
 
 // UDA includes
 #include <client/getEnvironment.h>
