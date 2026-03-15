@@ -1,0 +1,74 @@
+name: Build & Test
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - "feature/**"
+      - "release/**"
+  pull_request:
+    branches:
+      - main
+
+# prevent duplicate CI runs from separate triggers
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [macos-latest]
+        release: [Debug, Release]
+        # os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/github-script@v8
+        with:
+          script: |
+            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+
+      - name: Setup Linux
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt update && sudo apt install -y build-essential
+
+      - name: Install homebrew on Linux
+        if: matrix.os == 'ubuntu-latest'
+        run: /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+      - name: Install dependencies (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv bash)" &&
+          export PKG_CONFIG_PATH=$(pkg-config --prefix)/lib/pkgconfig &&
+          brew install pkg-config ninja libtirpc &&
+          export CPATH=$(brew --prefix libtirpc)/include/tirpc &&
+          brew install jholloc/formulae/libtokamap jholloc/formulae/uda
+
+      - name: Install dependencies (macOS)
+        if: matrix.os == 'macos-latest'
+        run: brew install pkg-config ninja jholloc/formulae/libtokamap jholloc/formulae/uda
+
+      - name: Configure CMake
+        run: >
+          export PKG_CONFIG_PATH=$(brew --prefix)/lib/pkgconfig &&
+          cmake -S . -G Ninja -B build -DCMAKE_BUILD_TYPE=${{ matrix.release }} -DCMAKE_INSTALL_PREFIX=./install
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Install
+        run: sudo cmake --install build
+
+      - name: Upload libraries
+        uses: actions/upload-artifact@v7
+        with:
+          name: uda-data-source-${{ matrix.os }}-${{ matrix.release }}
+          path: ./install/lib/lib*
