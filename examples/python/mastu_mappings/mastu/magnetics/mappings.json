@@ -9,5 +9,8 @@
             "port": "56565"
         },
         "scale": 1000
-    }
+    },
+    "value/int": 35,
+    "value/string": "some text",
+    "value/float": 1.23
 }
