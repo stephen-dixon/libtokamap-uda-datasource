@@ -30,7 +30,7 @@ namespace
 std::unique_ptr<libtokamap::DataSource> uda_data_source_factory(const libtokamap::DataSourceFactoryArgs& args)
 {
     auto host = libtokamap::get_arg<std::string>(args, "host");
-    auto port = libtokamap::get_arg<long>(args, "port");
+    auto port = libtokamap::get_arg<int>(args, "port");
     auto plugin_name = libtokamap::get_arg<std::string>(args, "plugin_name");
     std::optional<std::string> function = {};
     if (args.contains("function")) {
