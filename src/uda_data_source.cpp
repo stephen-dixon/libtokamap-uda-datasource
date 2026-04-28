@@ -133,6 +133,7 @@ class ArrayBuilder
     bool m_ownership_locked = false;
     bool m_buildable = false;
     bool m_free_data_required = false;
+    bool m_needs_transpose = false;
 
   public:
     ArrayBuilder() = default;
@@ -169,11 +170,14 @@ class ArrayBuilder
         m_data = db.data;
         m_size = db.data_n;
         m_shape.reserve(db.rank);
-        for (int i = db.rank - 1; i >= 0; --i) {
+        for (int i = 0; i < db.rank; ++i) {
             m_shape.push_back(db.dims[i].dim_n);
         }
         m_data_type = db.data_type;
         m_buildable = true;
+        m_needs_transpose = (db.rank > 1)
+            && (db.data_type != UDA_TYPE_CHAR)
+            && (db.data_type != UDA_TYPE_STRING);
     }
 
     ArrayBuilder& data(const DATA_BLOCK& db)
@@ -226,8 +230,40 @@ class ArrayBuilder
     }
 
   private:
+    template <typename T>
+    std::unique_ptr<T[]> make_transposed_buffer() const
+    {
+        int rank = static_cast<int>(m_shape.size());
+        std::vector<size_t> c_strides(rank);
+        c_strides[rank - 1] = 1;
+        for (int k = rank - 2; k >= 0; --k) {
+            c_strides[k] = c_strides[k + 1] * m_shape[k + 1];
+        }
+        const T* src = reinterpret_cast<const T*>(m_data);
+        auto dst = std::make_unique<T[]>(m_size);
+
+        std::vector<size_t> idx(rank, 0);
+        for (size_t f = 0; f < m_size; ++f) {
+            size_t c = 0;
+            for (int k = 0; k < rank; ++k) {
+                c += idx[k] * c_strides[k];
+            }
+            dst[c] = src[f];
+            for (int k = 0; k < rank; ++k) {
+                if (++idx[k] < m_shape[k]) break;
+                idx[k] = 0;
+            }
+        }
+        return dst;
+    }
+
     template <typename T> libtokamap::TypedDataArray _array_factory()
     {
+        if (m_needs_transpose) {
+            auto buf = make_transposed_buffer<T>();
+            return libtokamap::TypedDataArray(buf.release(), m_size, std::move(m_shape), true); // new buffer no own
+        }
+
         if constexpr (std::is_same_v<T, char>) {
             return libtokamap::TypedDataArray(const_cast<char*>(m_data), m_size, std::move(m_shape), m_owning);
         } else {
